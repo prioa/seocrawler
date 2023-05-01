@@ -35,20 +35,22 @@ def split_domain(domain):
     # Extract the domain name
     return domain.split("/")[0]
 
-def check_words(words, content, domain):
-    alfa_target = 'Die Domain "'  + split_domain(domain) + '" ist nicht verfügbar.'
-    print(alfa_target)
+def check_words(words, content, domain, mode):
     try:
+        if mode == "domainparking":
+            alfa_target = 'Die Domain "'  + split_domain(domain) + '" ist nicht verfügbar.'
+            if alfa_target in content:
+                print(f"found: {domain} - {mode} - {content}")
+                return True
         for word in words:
             if word in content:
-                print("found", word)
+                print(f"found: {domain} - {mode} - {word}")
                 return True
-        if alfa_target in content:
-            print("found")
-            return True
         return False
     except TypeError as e:
         pass
+
+
 wordlists_config = config['wordlists']
 words_flash = get_words_from_file(wordlists_config['flash'])
 words_maintainance = get_words_from_file(wordlists_config['maintainance'])
@@ -62,8 +64,6 @@ def get_max_cmd_len():
     if system in cmd_dict:
         return cmd_dict[system]
     return 6000
-
-
 MAX_CMD_LENGTH = get_max_cmd_len()
 
 def _split_long_urllist(url_list, max_len=MAX_CMD_LENGTH):
@@ -78,7 +78,6 @@ def _split_long_urllist(url_list, max_len=MAX_CMD_LENGTH):
     return split_list
 
 
-
 class dubdev(scrapy.Spider):
     name = spider_name
     follow_links = False
@@ -88,7 +87,6 @@ class dubdev(scrapy.Spider):
         self.id_list = json.loads(json.dumps(id_list.split(',')))
         self.start_urls = json.loads(json.dumps(url_list.split(',')))
 
-
     def start_requests(self):
         for idx, url in enumerate(self.start_urls):
             try:
@@ -97,7 +95,6 @@ class dubdev(scrapy.Spider):
                 yield request
             except Exception as e:
                 self.logger.error(repr(e))
-
 
     # doing stuff with the response
     def parse(self, response):
@@ -113,12 +110,7 @@ class dubdev(scrapy.Spider):
             certificate_info['ssl_start'] = False
             certificate_info['ssl_expire'] = False
 
-        # WORDLISTS
-
-
         content = response.xpath('//body//text()').extract()
-
-        print(content)
 
         yield {
             'id': response.meta.get('id'),
@@ -126,12 +118,12 @@ class dubdev(scrapy.Spider):
             'status': response.status,
             'title': response.xpath('//title/text()').get(),
             'redirectHTTPS': True if 'https://' in response.url else False,
-            'badTitle': check_words(words_badtitle, content, response.url),
-            'Domainparking': check_words(words_domainparking, content, response.url),
-            'Maintainance': check_words(words_maintainance, content, response.url),
-            'foundFlash': check_words(words_flash, content, response.url),
+            'badTitle': check_words(words_badtitle, response.xpath('//title/text()'), response.url, "title"),
+            'Domainparking': check_words(words_domainparking, content, response.url, "domainparking"),
+            'Maintainance': check_words(words_maintainance, content, response.url, "maintainance"),
+            'foundFlash': check_words(words_flash, content, response.url, "flash"),
             'lastModified': response.headers.to_unicode_dict().get('last-modified'),
-            'tableLayout': True if len(response.xpath('//div')) <= len(response.xpath('//tr')) else False,
+            'tableLayout': True if len(response.xpath('//div')) <= len(response.xpath('//tr')) else False, # add check here for download sites
             **certificate_info
         }
 
