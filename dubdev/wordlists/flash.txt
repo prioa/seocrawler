@@ -1,3 +1,0 @@
-http://www.macromedia.com/go/getflash
-http://download.macromedia.com/pub/shockwave/cabs/flash/
-application/x-shockwave-flash
