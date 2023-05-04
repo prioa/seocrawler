@@ -50,22 +50,15 @@ def get_words_from_file(filename):
         print(f"{filename} not found")
         exit(3)
 
-counter = 0
 if __name__ == '__main__':
-    print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n%%%%%%%%%%%%%%%%%%%%%#*%%%%%%%%%%%%%%%%%\n%%%%%%%%%%%%%%%%%%%%%%%%*,,%%%%%%%%%%%%%\n%%%%%%%%%%%%%,,,,*(%%%%%%%%,,,%%%%%%%%%%\n%%%%%%%%%%,,,,,,,,,%%%%%%%%%%,,,,%%%%%%%\n%%%%%%%%,,,,,,,,,%%%%%%%%%%%%%,,,,,%%%%%\n%%%%%,,,,,,,,,,,,,*%%%%%%%%%%%%/,,,,%%%%\n%%%%%%*,,,,,%%(,,,,,,%%%%%%%%%%%,,,,,%%%\n%%%%%%%%%%%%%%%%%,,,,,,,%%%%%%%%(,,,,%%%\n%%%%%%%%%%%%%%%%%%%(,,,,,,%%%%%%,,,,,%%%\n%%%%%%%%%%%%%%%%%%%%%%,,,,,,,%%,,,,,%%%%\n%%%%%%%%%#,,,,,%%%%%%%%%#,,,,,,,,,,%%%%%\n%%%%%%%(,,,,,,,,,,,,,*,,,,,,,,,,,*%%%%%%\n%%%%,,,,,,#%%%%#,,,,,,,,,,,,,,,,,,,,%%%%\n%%,,,,,,,%%%%%%%%%%%%%%%%%%%%%%%,,,,,,/%\n%%,,,,#%%%%%%%%%%%%%%%%%%%%%%%%%%%(,,,/%\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+    print("██████╗░██╗░░░██╗██╗░░░░░██╗░░██╗  ░██████╗███████╗░█████╗░\n██╔══██╗██║░░░██║██║░░░░░██║░██╔╝  ██╔════╝██╔════╝██╔══██╗\n██████╦╝██║░░░██║██║░░░░░█████═╝░  ╚█████╗░█████╗░░██║░░██║\n██╔══██╗██║░░░██║██║░░░░░██╔═██╗░  ░╚═══██╗██╔══╝░░██║░░██║\n██████╦╝╚██████╔╝███████╗██║░╚██╗  ██████╔╝███████╗╚█████╔╝\n╚═════╝░░╚═════╝░╚══════╝╚═╝░░╚═╝  ╚═════╝░╚══════╝░╚════╝░\n░█████╗░██████╗░░█████╗░░██╗░░░░░░░██╗██╗░░░░░███████╗██████╗░\n██╔══██╗██╔══██╗██╔══██╗░██║░░██╗░░██║██║░░░░░██╔════╝██╔══██╗\n██║░░╚═╝██████╔╝███████║░╚██╗████╗██╔╝██║░░░░░█████╗░░██████╔╝\n██║░░██╗██╔══██╗██╔══██║░░████╔═████║░██║░░░░░██╔══╝░░██╔══██╗\n╚█████╔╝██║░░██║██║░░██║░░╚██╔╝░╚██╔╝░███████╗███████╗██║░░██║\n░╚════╝░╚═╝░░╚═╝╚═╝░░╚═╝░░░╚═╝░░░╚═╝░░╚══════╝╚══════╝╚═╝░░╚═╝")
     for key in wordlists_config:
         globals()['words_' + key] = get_words_from_file(wordlists_config[key])
     chunk_size = int(general_config['chunk_size'])
     df_length = len(pd.read_csv(project_config['file_name'], sep=project_config['seperator']))
-    num_chunks = (df_length // chunk_size) + 1
-    # print(f"urls: {df_length} | chunks: {num_chunks} | items/chunk: {chunk_size}")
+    output_file = project_config['name'] + f"_results_{str(formatted_timestamp)}.jl"
     for i in range(0, df_length, chunk_size):
-        counter += 1
-        start = i
-        end = i + chunk_size
-        domains = get_domains(start, end)
-        # print(f"processing chunk: {counter}")
-        output_file = project_config['name'] + f"_results_{str(formatted_timestamp)}.jl"
+        domains = get_domains(i, i + chunk_size)
         crawl(domains, output_file)
     
     print(f"Crawler finished in {time.time() - start_time:.2f} seconds")
@@ -74,9 +67,8 @@ if __name__ == '__main__':
     with jsonlines.open(output_file) as reader:
         for obj in reader:
             counter_full += 1
-            if ('badTitle' in obj and obj['badTitle'] is False) and \
-            ('Domainparking' in obj and obj['Domainparking'] is False) and \
-            ('Maintainance' in obj and obj['Maintainance'] is False) and \
-            ('fonudFlash' in obj and obj['foundFlash'] is False):
+            if ('generator' in obj and obj['generator'] != "None") and \
+            ('cms' in obj and obj['cms'] == "None"):
                 counter_nores += 1
+                print(obj['url'])
     print(f"found {counter_full} items.\n{counter_nores} items without error")

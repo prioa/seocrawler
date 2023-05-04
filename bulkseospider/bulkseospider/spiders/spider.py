@@ -1,8 +1,6 @@
-from pathlib import Path
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError
 from twisted.internet.error import TimeoutError
-from twisted.internet import ssl
 import datetime
 from scrapy import Request
 import json
@@ -10,7 +8,12 @@ import scrapy
 import subprocess
 import configparser
 import platform
+import pandas as pd
+import phonenumbers
+import validators
+import re
 
+from fuzzywuzzy import fuzz
 
 import bulkseospider as bss
 
@@ -19,6 +22,27 @@ spider_name = 'bulkseospider'
 
 config = configparser.ConfigParser()
 config.read('./config.ini')
+wordlists_config = config['wordlists']
+project_config = config['project']
+
+
+def get_phone_numbers(content):
+    phone_numbers = []
+    for a in content:
+        number = phonenumbers.parse(a, project_config['country_code'])
+        number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+        if number:
+            if number not in phone_numbers:
+                phone_numbers.append(number)
+    return ", ".join(phone_numbers)
+
+def get_email(content):
+    emails = []
+    for a in content:
+            if validators.email(a):
+                if a not in emails:
+                  emails.append(a)
+    return ", ".join(emails)
 
 
 def get_words_from_file(filename):
@@ -34,6 +58,9 @@ def split_domain(domain):
 
     # Extract the domain name
     return domain.split("/")[0]
+
+def find_duplicates(lst):
+    return len(lst) != len(set(lst))
 
 def check_words(words, content, domain, mode):
     try:
@@ -53,18 +80,49 @@ def check_words(words, content, domain, mode):
     except TypeError as e:
         pass
 
-def check_social(content, target):
-    
-    print(content)
-    if target in str(content):
-        return True
-    return False
-
-wordlists_config = config['wordlists']
 words_flash = get_words_from_file(wordlists_config['flash'])
 words_maintainance = get_words_from_file(wordlists_config['maintainance'])
 words_domainparking = get_words_from_file(wordlists_config['domainparking'])
 words_badtitle = get_words_from_file(wordlists_config['badtitle'])
+
+def check_social(content, target):
+    if target in str(content):
+        return True
+    return False
+
+def check_cms(content):
+    df = pd.read_csv(wordlists_config['cms'], delimiter=';')
+    for index, row in df.iterrows():
+        #print(row['location'])
+        if row['location'] == "href":
+            targets = content.xpath('//@href').getall()
+            if row['search_string'] in str(targets):
+                return row['cms']
+        if row['location'] == "script" or row['location'] == "img":
+            targets = content.xpath('//@src').getall()
+            if row['search_string'] in str(targets):
+                return row['cms']
+        if row['location'] == "html":
+            if row['search_string'] in str(content.body.decode('utf-8')):
+                return row['cms']
+        if row['location'] == "meta":
+            targets = content.xpath('//meta/@content').getall()
+            if row['search_string'] in str(targets):
+                return row['cms']
+    return False
+
+def check_page(content, targets):
+    for target in targets:
+        if target.lower() in str(content).lower():
+            return True
+    return False
+
+def check_wp_version(generator_tag):
+    try:
+        if "WordPress" in str(generator_tag):
+            return str(generator_tag).split()[1]
+    except:
+        return None
 
 
 def get_max_cmd_len():
@@ -119,23 +177,33 @@ class bulkseospider(scrapy.Spider):
             certificate_info['ssl_start'] = False
             certificate_info['ssl_expire'] = False
 
-        # Table Layout
-        # table_layout = True if len(response.xpath('//div')) <= len(response.xpath('//tr')) else False
+        # Phone
+        hrefs = response.css("a::attr(href)").getall()
+        hrefs_complete = response.css("a").getall()
+        tel_hrefs = [href.split(":")[1] for href in hrefs if href.startswith("tel:")]
+        mail_hrefs = [href.split(":")[1] for href in hrefs if href.startswith("mailto:")]
 
-
-        hrefs = response.xpath('//a/@href').getall()
-        # print(hrefs)
-
-
+        # legal lists
+        imprint_list = ['Impressum', 'Imprint', 'Legal Notice', 'Legal Disclosure', 'Site Notice', 'Anbieterkennzeichnung', 'Offenlegung nach § 5 TMG', 'Angaben gemäß § 5 Abs. 1 E-Commerce-Gesetz (ECG)', 'Anbieterinformationen']
+        legal_list = ['Datenschutz', 'Datenschutzerklärung', 'Datenschutzrichtlinie', 'Datenschutzhinweise', 'Datenschutzbestimmungen', 'Privacy Policy', 'Privacy Statement', 'Data Protection Policy', 'Datenschutzinformationen', 'Datenschutzregeln', 'Datenschutzbelehrung']
 
 
         content = response.body.decode('utf-8')
-        #print(content)
+
+        BODY_TEXT_SELECTOR = '//body//span//text() | //body//p//text() | //body//li//text()'
+        body_text = ' '.join(response.xpath(BODY_TEXT_SELECTOR).extract())
+        cleaned_text = re.sub(r'[^\w\s]', '', body_text)
+        words = cleaned_text.split()
+
+        h1 = response.xpath('//h1/text()').get()
+
+        h2 = response.xpath('//h2/text()').getall()
+
         yield {
             'id': response.meta.get('id'),
             'url': response.url,
             'status': response.status,
-            'title': response.xpath('//title/text()').get(),
+            'title': response.xpath('//title/text()').get().strip(),
             'redirectHTTPS': True if 'https://' in response.url else False,
             'badTitle': check_words(words_badtitle, response.xpath('//title/text()'), response.url, "title"),
             'Domainparking': check_words(words_domainparking, content, response.url, "domainparking"),
@@ -147,12 +215,31 @@ class bulkseospider(scrapy.Spider):
             'smInstagram': check_social(hrefs, "https://www.instagram.com/"),
             'smTwitter': check_social(hrefs, "https://www.twitter.com/"),
             'smYoutube': check_social(hrefs, "https://www.youtube.com/channel"),
-            'smLinkedin': check_social(hrefs, "https://www.linkedin.com/company/"), # change for multiple input vals
+            'smLinkedin': check_social(hrefs, "https://www.linkedin.com/company/"),
             'smXing': check_social(hrefs, "https://www.xing.com/pages/"),
             'smPinterest': check_social(hrefs, "https://www.pinterest.at/"),
-            **certificate_info
-        }
+            'generator': str(response.xpath("//meta[@name='generator']/@content").get()),
+            'cms': check_cms(response),
+            'cmsVersion': check_wp_version(str(response.xpath("//meta[@name='generator']/@content").get())),
+            'phone': get_phone_numbers(tel_hrefs),
+            'email': get_email(mail_hrefs),
+            'impressum': check_page(hrefs_complete, imprint_list),
+            'datenschutz': check_page(hrefs_complete, legal_list),
+            "H1": len(response.xpath('//h1').getall()),
+            "H1Size": len(h1) if len(response.xpath('//h1').getall()) == 1 else "NaN",
+            "H1inBody": fuzz.token_set_ratio(h1, body_text),
+            "H1inTitle": fuzz.token_set_ratio(h1, response.xpath('//title/text()').get().strip()),
+            "H1inMeta": fuzz.token_set_ratio(h1, response.xpath("//meta[@name='description']/@content").extract_first().strip()),
+            "SEOScore": fuzz.token_set_ratio(h1, body_text, response.xpath("//meta[@name='description']/@content").extract_first().strip(), response.xpath('//title/text()').get().strip()),
+            "MetaDescriptionSize": len(response.xpath("//meta[@name='description']/@content").extract_first().strip()),
+            "H2": len(response.xpath('//h2').getall()),
+            "UniqueH2Tags": 'False' if find_duplicates(h2) else 'True',
+            "TitleTagSize": len(response.xpath('//title/text()').get().strip()),
+            "WordCount": len(words),
+            **certificate_info,
+            'crawl_time': datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
 
+        }
 
 
     def errback(self, failure):

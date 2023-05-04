@@ -1,0 +1,37 @@
+cms;search_string;location
+WordPress;wp-content;href
+WordPress;wp-admin;script
+WordPress;wp-content;img
+Jimdo;https://jimdo-;href
+Jimdo;jimstatic.com;script
+IONOS;website-editor.net;href
+HCL Commerce;wcsstore;href
+Shopify;shopify.com;script
+Magento;Magento;html
+Joomla;Joomla;html
+Joomla;com_virtuemart;script
+Joomla;/plugins/system/jce/css/;href
+Joomla;/themes/ekofood/;href
+Drupal;/sites/default/;script
+Drupal;/core/misc/favicon;href
+Snipcard;snipcart.com/;script
+JTL-Shop;jtl_;href
+Shopware;/engine/Shopware/;href
+Selly;/selly-cps;href
+Selly;.selly.at/;script
+Moto;/mt-includes/;href
+Afterbuy;shop-static.afterbuy.de;script
+Gambio;templates/Honeygrid/;script
+HEROLD;/img/herold/;img
+Weebly;.editmysite.com/;script
+FirmenABC;/partnerlinks/fabc_at.svg;img
+FirmenABC;/firmenabc.jpg;img
+HEISE;heise-websitedata.de;script
+Magnolia;/magnolia;script
+Magnolia;/.resources/;href
+Webflow;website-files.com/;script
+DNN;/dnncore.js;script
+Namo WebEditor;Namo WebEditor;meta
+Contao Open Source CMS;Contao Open Source CMS;meta
+Wix;https://static.wixstatic.com/;href
+Duda;<div id="dm" class='dmwr'>;html

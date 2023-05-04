@@ -1,5 +1,6 @@
 Offline - Wir sind gleich wieder da
 Maintenance
+Unsere Internetseite wird gerade &uuml;berarbeitet
 Wir arbeiten gerade an unserer Website
 Site is undergoing maintenance
 Hier entsteht eine neue Kunden-Website | World4You:
@@ -18,4 +19,3 @@ Diese Internetseite ist derzeit nicht erreichbar.
 Bitte versuchen Sie es zu einem späteren Zeitpunkt erneut.
 Die Seite befindet sich im Aufbau.
 Unsere Internetseite wird gerade überarbeitet
->Unsere Internetseite wird gerade &uuml;berarbeitet
