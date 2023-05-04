@@ -111,6 +111,27 @@ def check_cms(content):
                 return row['cms']
     return False
 
+def check_shop(content):
+    df = pd.read_csv(wordlists_config['shop'], delimiter=';')
+    for index, row in df.iterrows():
+        #print(row['location'])
+        if row['location'] == "href":
+            targets = content.xpath('//@href').getall()
+            if row['search_string'] in str(targets):
+                return row['shop']
+        if row['location'] == "script" or row['location'] == "img":
+            targets = content.xpath('//@src').getall()
+            if row['search_string'] in str(targets):
+                return row['shop']
+        if row['location'] == "html":
+            if row['search_string'] in str(content.body.decode('utf-8')):
+                return row['shop']
+        if row['location'] == "meta":
+            targets = content.xpath('//meta/@content').getall()
+            if row['search_string'] in str(targets):
+                return row['shop']
+    return False
+
 def check_page(content, targets):
     for target in targets:
         if target.lower() in str(content).lower():
@@ -220,6 +241,7 @@ class bulkseospider(scrapy.Spider):
             'smPinterest': check_social(hrefs, "https://www.pinterest.at/"),
             'generator': str(response.xpath("//meta[@name='generator']/@content").get()),
             'cms': check_cms(response),
+            'shop': check_shop(response),
             'cmsVersion': check_wp_version(str(response.xpath("//meta[@name='generator']/@content").get())),
             'phone': get_phone_numbers(tel_hrefs),
             'email': get_email(mail_hrefs),

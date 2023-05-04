@@ -1,0 +1,15 @@
+shop;search_string;location
+WooCommerce;woocommerce;href
+WooCommerce;?add-to-cart=;html
+WooCommerce;woocommerce-;script
+Magento;Magento;html
+Magento;com_virtuemart;script
+Jimdo;j-cart-wrapper-link;html
+HCL Commerce;wcsstore;href
+Shopify;shopify.com;script
+Afterbuy;shop-static.afterbuy.de;script
+Gambio;templates/Honeygrid/;script
+JTL;jtl_;href
+Shopware;/engine/Shopware/;href
+Snipcart;snipcart.com/;script
+True;warenkorb.php;href
