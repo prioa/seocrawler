@@ -35,3 +35,5 @@ Namo WebEditor;Namo WebEditor;meta
 Contao Open Source CMS;Contao Open Source CMS;meta
 Wix;https://static.wixstatic.com/;href
 Duda;<div id="dm" class='dmwr'>;html
+Adobe Muse;Muse.Utils;html
+Adobe Muse;scripts/museconfig.js;html
