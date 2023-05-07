@@ -32,5 +32,5 @@ pip install -r requirements.txt
 
 
 ### Contributing
-If you find a bug or have a feature request, please open an issue or submit a pull request. We welcome contributions from the community!
+If you find a bug or have a feature request, please open an issue or submit a pull request.
 
