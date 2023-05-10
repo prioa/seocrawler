@@ -217,14 +217,15 @@ class bulkseospider(scrapy.Spider):
         words = cleaned_text.split()
 
         h1 = response.xpath('//h1/text()').get()
-
         h2 = response.xpath('//h2/text()').getall()
+        title = response.xpath('//title/text()').get()
+        description = response.xpath("//meta[@name='description']/@content")
 
         yield {
             'id': response.meta.get('id'),
             'url': response.url,
             'status': response.status,
-            'title': response.xpath('//title/text()').get().strip(),
+            'title': title.strip() if title else 0,
             'redirectHTTPS': True if 'https://' in response.url else False,
             'badTitle': check_words(words_badtitle, response.xpath('//title/text()'), response.url, "title"),
             'Domainparking': check_words(words_domainparking, content, response.url, "domainparking"),
@@ -248,15 +249,15 @@ class bulkseospider(scrapy.Spider):
             'impressum': check_page(hrefs_complete, imprint_list),
             'datenschutz': check_page(hrefs_complete, legal_list),
             "H1": len(response.xpath('//h1').getall()),
-            "H1Size": len(h1) if len(response.xpath('//h1').getall()) == 1 else "NaN",
-            "H1inBody": fuzz.token_set_ratio(h1, body_text),
-            "H1inTitle": fuzz.token_set_ratio(h1, response.xpath('//title/text()').get().strip()),
-            "H1inMeta": fuzz.token_set_ratio(h1, response.xpath("//meta[@name='description']/@content").extract_first().strip()),
-            "SEOScore": fuzz.token_set_ratio(h1, body_text, response.xpath("//meta[@name='description']/@content").extract_first().strip(), response.xpath('//title/text()').get().strip()),
-            "MetaDescriptionSize": len(response.xpath("//meta[@name='description']/@content").extract_first().strip()),
+            "H1Size": len(h1) if len(response.xpath('//h1').getall()) == 1 and h1 else "NaN",
+            "H1inBody": fuzz.token_set_ratio(h1, body_text) if h1 and body_text else 0,
+            "H1inTitle": fuzz.token_set_ratio(h1, title.strip()) if h1 and title else 0,
+            "H1inMeta": fuzz.token_set_ratio(h1, description.extract_first().strip()) if h1 and description else 0,
+            "SEOScore": fuzz.token_set_ratio(h1, body_text, description.extract_first().strip(), title.strip()) if h1 and body_text and description and title else 0,
+            "MetaDescriptionSize": len(description.extract_first().strip()) if description else 0,
             "H2": len(response.xpath('//h2').getall()),
             "UniqueH2Tags": 'False' if find_duplicates(h2) else 'True',
-            "TitleTagSize": len(response.xpath('//title/text()').get().strip()),
+            "TitleTagSize": len(title.strip()) if title else 0,
             "WordCount": len(words),
             **certificate_info,
             'crawl_time': datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
