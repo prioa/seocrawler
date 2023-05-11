@@ -10,9 +10,10 @@ import configparser
 import platform
 import pandas as pd
 import phonenumbers
+from phonenumbers.phonenumberutil import NumberParseException
+
 import validators
 import re
-
 from fuzzywuzzy import fuzz
 
 import bulkseospider as bss
@@ -29,11 +30,15 @@ project_config = config['project']
 def get_phone_numbers(content):
     phone_numbers = []
     for a in content:
-        number = phonenumbers.parse(a, project_config['country_code'])
-        number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+        try:
+            number = phonenumbers.parse(a, project_config['country_code'])
+            number = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+        except NumberParseException as e:
+            number = a
         if number:
             if number not in phone_numbers:
                 phone_numbers.append(number)
+            
     return ", ".join(phone_numbers)
 
 def get_email(content):
@@ -103,7 +108,7 @@ def check_cms(content):
             if row['search_string'] in str(targets):
                 return row['cms']
         if row['location'] == "html":
-            if row['search_string'] in str(content.body.decode('utf-8')):
+            if row['search_string'] in str(content.body.decode('utf-8', errors="replace")):
                 return row['cms']
         if row['location'] == "meta":
             targets = content.xpath('//meta/@content').getall()
@@ -124,7 +129,7 @@ def check_shop(content):
             if row['search_string'] in str(targets):
                 return row['shop']
         if row['location'] == "html":
-            if row['search_string'] in str(content.body.decode('utf-8')):
+            if row['search_string'] in str(content.body.decode('utf-8', errors="replace")):
                 return row['shop']
         if row['location'] == "meta":
             targets = content.xpath('//meta/@content').getall()
@@ -209,7 +214,7 @@ class bulkseospider(scrapy.Spider):
         legal_list = ['Datenschutz', 'Datenschutzerklärung', 'Datenschutzrichtlinie', 'Datenschutzhinweise', 'Datenschutzbestimmungen', 'Privacy Policy', 'Privacy Statement', 'Data Protection Policy', 'Datenschutzinformationen', 'Datenschutzregeln', 'Datenschutzbelehrung']
 
 
-        content = response.body.decode('utf-8')
+        content = response.body.decode('utf-8', errors="replace")
 
         BODY_TEXT_SELECTOR = '//body//span//text() | //body//p//text() | //body//li//text()'
         body_text = ' '.join(response.xpath(BODY_TEXT_SELECTOR).extract())
