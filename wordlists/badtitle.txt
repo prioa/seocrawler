@@ -1049,3 +1049,4 @@ Webmail :: Welcome to Webmail
 Webpage
 Webseite wird umgestaltet
 Website
+Kundendomain ist gesperrt
