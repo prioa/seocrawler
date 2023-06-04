@@ -183,6 +183,7 @@ class bulkseospider(scrapy.Spider):
     def start_requests(self):
         for idx, url in enumerate(self.start_urls):
             try:
+                url = 'http://' + url
                 request = Request(url, callback=self.parse, errback=self.errback)
                 request.meta['id'] = self.id_list[idx] if idx < len(self.id_list) else None
                 yield request
@@ -264,9 +265,9 @@ class bulkseospider(scrapy.Spider):
             "UniqueH2Tags": 'False' if find_duplicates(h2) else 'True',
             "TitleTagSize": len(title.strip()) if title else 0,
             "WordCount": len(words),
+            "Viewport": 'True' if response.xpath("//meta[@name='viewport']").get() is not None else 'False',
             **certificate_info,
             'crawl_time': datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
-
         }
 
 
